@@ -1,0 +1,452 @@
+{
+  "name": "Cloudflare: Linkedin post with image (Updated & Cleaned)",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "result.image",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [1088, 48],
+      "id": "298964f7-8ffd-49c8-baaf-8d42977318ed",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "url": "https://api.cloudflare.com/client/v4/accounts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [624, 48],
+      "id": "0b887e68-d35b-4dc3-93aa-a94377442216",
+      "name": "Get accounts"
+    },
+    {
+      "parameters": {
+        "errorMessage": "The size of the image (width x height) is larger than 1 megapixel"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [368, -160],
+      "id": "fcb440d1-b4d5-4c7c-b6f5-699f936dc3d9",
+      "name": "Image > 1 megapixel"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f6e30a82-76cd-4bfd-9bc5-b7fffb15e35c",
+              "leftValue": "={{ $json.width * $json.height > 1048576 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [208, 32],
+      "id": "797ff13c-f1f1-440c-a658-40634619a9ec",
+      "name": "Check image size"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3f7d5020-0710-4f3c-858f-0485a2bd2963",
+              "name": "width",
+              "value": "={{ $json.width || 768 }}",
+              "type": "number"
+            },
+            {
+              "id": "39b906fa-3e0b-45b9-9c1b-95cbc51e195d",
+              "name": "prompt",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "3f8593d2-cfb3-437a-a9fc-4430995cb78f",
+              "name": "height",
+              "value": "={{ $json.height || 1024 }}",
+              "type": "number"
+            },
+            {
+              "id": "065181ef-404a-4860-9019-976e6e8391e0",
+              "name": "seed",
+              "value": "={{ Math.floor(Math.random() * 100000000) }}",
+              "type": "number"
+            },
+            {
+              "id": "2c131da3-e708-4468-bb09-d400e7e5f28c",
+              "name": "steps",
+              "value": 4,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [0, 32],
+      "id": "0256d6d4-5167-47ab-9e6f-fc7e8edc2568",
+      "name": "Setup workflow"
+    },
+    {
+      "parameters": {
+        "content": "# CloudFlare API for Image",
+        "height": 400,
+        "width": 464
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [560, -128],
+      "id": "9a14f319-d312-4f90-bd81-9c64da15a61f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.cloudflare.com/client/v4/accounts/{{ $json.result[0].id }}/ai/run/@cf/black-forest-labs/flux-1-schnell",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "=json",
+        "jsonBody": "={{ \n\nJSON.stringify(\n  {\n    prompt: $('AI Agent1').item.json.output,\n    seed: $('Setup workflow').item.json.seed,\n    \"width\": $('Setup workflow').item.json.width,\n    \"height\": $('Setup workflow').item.json.height,\n    \"steps\": $('Setup workflow').item.json.steps\n  }\n) \n\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [848, 48],
+      "id": "c3660b9d-b8c3-4b58-aea1-b0021fd0cf5d",
+      "name": "Flux Schnell image"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{}]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-1104, 32],
+      "id": "ebcd51bb-1b40-48ae-b8e3-460ee601f8d3",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate LinkedIn post from below information.\n\nContent Pillar:\n{{ $json[\"Content Pillar\"] }}\n\nTopic:\n{{ $json[\"Topic\"] }}\n\nCore Problem:\n{{ $json[\"Core Problem\"] }}\n\nPost Angle:\n{{ $json[\"Post Angle\"] }}\n\nReal Example:\n{{ $json[\"Real Example / Use Case\"] }}\n\nTarget Audience:\n{{ $json[\"Target Audience\"] }}\n\nExperience Signal:\n{{ $json[\"Experience Signal\"] }}\n\nHook Idea:\n{{ $json[\"Hook Idea\"] }}\n\nDepth Level:\n{{ $json[\"Depth Level\"] }}\n\nPreviously Published Posts:\n{{ JSON.stringify($json) }}\n\nAvoid repetition.\nGenerate next-level post.",
+        "options": {
+          "systemMessage": "You are Hitendra Chopda's LinkedIn ghostwriter.\n\nAbout Hitendra:\n\n- Product Success & Operations Lead\n- 10 years experience in WooCommerce plugin development\n- Strong expertise in customer success, onboarding, support systems, product operations, feature prioritization, WooCommerce growth, AI automation and plugin management.\n\nGoal:\nCreate one short but highly insightful LinkedIn post.\n\nYour task:\nTake the structured topic data and turn it into a practical thought leadership post.\n\nRules:\n\n1. Never repeat published topics, hooks, examples or ideas.\n2. Build progressively deeper expertise over time.\n3. Make content feel experience-driven.\n4. Keep post short and highly practical.\n5. Add one mini example or use case.\n6. Avoid fluff.\n7. Avoid motivational content.\n8. Avoid corporate jargon.\n9. Sound like an operator sharing real lessons.\n10. Show practical understanding of product and customer behavior.\n11. End with a thoughtful question.\n\nWriting Style:\n\n- Short paragraphs\n- Simple language\n- Practical\n- Research-driven\n- Professional\n- Human"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [-688, 32],
+      "id": "89c93aa0-ce1f-4f5d-a9bf-49a11ad3998c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "gemma4:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [-768, 336],
+      "id": "418cda3a-919e-437b-91c4-a1d30b537fed",
+      "name": "Ollama Chat Model1"
+    },
+    {
+      "parameters": {
+        "person": "xvCBfm5c-Z",
+        "text": "={{ $('AI Agent').item.json.output }}",
+        "shareMediaCategory": "IMAGE",
+        "binaryPropertyName": "=data",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [1296, 48],
+      "id": "a8356321-ed4d-4e5f-99d8-f1fbca09f364",
+      "name": "Create a post"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1QcjceeMMXhtUXMAQ27Rx-F86IpKcjUgePxQXUYab4jU",
+          "mode": "list",
+          "cachedResultName": "LinkedIn - N8N Automation",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QcjceeMMXhtUXMAQ27Rx-F86IpKcjUgePxQXUYab4jU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Posts_2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QcjceeMMXhtUXMAQ27Rx-F86IpKcjUgePxQXUYab4jU/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status",
+              "lookupValue": "Ready"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [-896, 32],
+      "id": "c01579d8-cbea-4a38-9cd0-bae0bc17c91e",
+      "name": "Get row(s) in sheet"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Post content:\n{{ $('AI Agent').item.json.output }}\n\nBased on the above post, generate a premium LinkedIn image prompt.\n\nImage requirements:\n\n- Simple to understand.\n- Left side problem context of post\n- Right side solution part\n- Professional\n- Image width is 768\n- Image height is 1024\n- Image size should be less than 1 MP\n- Maximum character of this prompt is 400\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [-288, 32],
+      "id": "b1dfcd34-3ec9-4e39-8ca0-54c6d6beb5b3",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": "gemma4:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [-272, 272],
+      "id": "ad6dd6df-b9b3-456b-93d8-6438aff90fed",
+      "name": "Ollama Chat Model"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [-432, 32],
+      "id": "9cee1fd8-6711-400d-a4bf-d7998cf49edc",
+      "name": "Wait",
+      "webhookId": "ecddfe2e-266e-4c32-8690-7a5aad85a2f6"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1QcjceeMMXhtUXMAQ27Rx-F86IpKcjUgePxQXUYab4jU",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list"
+        },
+        "rowNumber": "={{ $('Get row(s) in sheet').item.json.rowNumber }}",
+        "fieldsUI": {
+          "values": [
+            {
+              "columnName": "Status",
+              "value": "Published"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [1520, 48],
+      "id": "f58d92cb-1f65-4f76-8051-2ccbc89ba123",
+      "name": "Update row status"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get accounts": {
+      "main": [
+        [
+          {
+            "node": "Flux Schnell image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check image size": {
+      "main": [
+        [
+          {
+            "node": "Image > 1 megapixel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get accounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setup workflow": {
+      "main": [
+        [
+          {
+            "node": "Check image size",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flux Schnell image": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a post": {
+      "main": [
+        [
+          {
+            "node": "Update row status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Setup workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "6282bca1-7afa-4db7-9513-0a32d992fa95",
+  "id": "6YLJfplnkWzMVVMV",
+  "tags": []
+}
